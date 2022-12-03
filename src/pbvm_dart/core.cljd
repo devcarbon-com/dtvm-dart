@@ -1,8 +1,10 @@
 (ns pbvm-dart.core
   (:require ["package:flutter/material.dart" :as m]
-            [cljd.flutter.alpha2 :as f]))
+            [cljd.flutter.alpha2 :as f]
+            [tiltontec.cell.core :refer [cF cF+ cF_ cI]]
+            [tiltontec.model.core :refer [mget mset! mswap! fm*] :as md]))
 
-(declare centered-text)
+(def centered-text "This text is Centered." #_ "This text is Reloaded.")
 
 (defn main-app []
   (m/runApp
@@ -15,7 +17,7 @@
             .appBar (m/AppBar
                      .title (m/Text "Welcome to ClojureDart"))
             .body   (m/Center
-                     .child (m/Text (ct)
+                     .child (m/Text centered-text
                                     .style (m/TextStyle
                                             .color m.Colors/red
                                             .fontSize 32.0))))))))
@@ -23,6 +25,3 @@
 (defn main []
   (main-app))
 
-(defn ct []
-  (let [this "that"] centered-text))
-(def centered-text #_ "This text is Centered." "This text is Reloaded.")
