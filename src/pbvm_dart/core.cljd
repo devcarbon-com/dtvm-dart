@@ -2,25 +2,41 @@
   (:require ["package:flutter/material.dart" :as m]
             [cljd.flutter.alpha2 :as f]
             [tiltontec.cell.core :refer [cF cF+ cF_ cI]]
-            [tiltontec.model.core :refer [mget mset! mswap! fm*] :as md]))
+            [tiltontec.model.core :refer [mget mset! mswap! fm*] :as md]
+            [tiltontec.flutter-mx.core :refer [as-dart-callback] :as fx]
+            ["package:flutter/foundation.dart" :as foundation]))
 
-(def centered-text "This text is Centered." #_ "This text is Reloaded.")
+(def reload-test "This text is Centered." #_ "This text is Reloaded.")
 
 (defn main-app []
   (m/runApp
    (f/widget
-    :key "myKey"
+    :key "key"
     (m/MaterialApp
      .title "Welcome to Flutter"
      .theme (m/ThemeData .primarySwatch m.Colors/pink)
      .home (m/Scaffold
             .appBar (m/AppBar
                      .title (m/Text "Welcome to ClojureDart"))
-            .body   (m/Center
-                     .child (m/Text centered-text
+            .body (m/Center
+                   .child (m/Text reload-test
+                                  .style (m/TextStyle
+                                          .color m.Colors/red
+                                          .fontSize 32.0))))))))
+#_ (defn main-app []
+     (m/runApp
+      (m/MaterialApp
+       .title "Welcome to Flutter"
+       .key (foundation/ValueKey "key")
+       .theme (m/ThemeData .primarySwatch m.Colors/pink)
+       .home (m/Scaffold
+              .appBar (m/AppBar
+                       .title (m/Text "Welcome to ClojureDart"))
+              .body (m/Center
+                     .child (m/Text reload-test
                                     .style (m/TextStyle
                                             .color m.Colors/red
-                                            .fontSize 32.0))))))))
+                                            .fontSize 32.0)))))))
 
 (defn main []
   (main-app))
