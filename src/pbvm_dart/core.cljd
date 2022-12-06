@@ -177,11 +177,12 @@
 
 (comment "Bare-minimum f/mx attempt. No bacon.")
 #_ (defn make-app []
-     (fx/fx-render nil
-                   (fx/material-app
-                    {:key (foundation/UniqueKey)}
-                    (scaffold
-                     (fx/text (fx/mget test-matrix :test))))))
+     (m/runApp
+      (fx/fx-render nil
+                    (fx/material-app
+                     {:key (foundation/UniqueKey)}
+                     (fx/scaffold
+                      (fx/text (mget test-matrix :test)))))))
 
 (defn main []
   (main-app))
