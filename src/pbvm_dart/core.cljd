@@ -16,17 +16,18 @@
 
 #_ (macro-test reload-test "This text is Centered." #_ "This text is Reloaded.")
 
-(defonce a-me (atom nil))
+#_ (defonce a-me (atom nil))
 
 (defn repl-ish []
   (dc/print :reloading---)
-  (if-let [me @a-me]
-    (do (await (.delayed dc/Future (dc/Duration .milliseconds 2000)))
-        (fct/state-set-all me))
-    (dc/print :not-yet))
+  #_ (if-let [me @a-me]
+       (do (await (.delayed dc/Future (dc/Duration .milliseconds 2000)))
+           (fct/state-set-all me))
+       (dc/print :do-not-yet-have--a-me-instance))
   )
 
-(defmacro widget
+(comment "alpha's widget macro paired down to the bare-minimum (I think).")
+(defmacro widget-min
   [& body]
   (let [flutter-build-ctx (vary-meta `ctx# assoc :tag `w/BuildContext)
         state-sym `^w/State state#
@@ -49,20 +50,18 @@
                ~@body))))]
     user-widget))
 
-(do (def reload-test #_ "This text is Centered." "This text is Reloaded.")
 
-    (def reload-test2 #_ "This text is Centered." "This text is Reloaded."))
 
-(let [rrr reload-test]
-  (dc/print rrr)
-  rrr)
 
-(def reload-map-test {:reload-test reload-test})
 
+
+(def reload-test "This text is Centered." #_ "This text is Reloaded.")
 
 (def test-matrix (md/make
-                  :test (cI "Hello" #_ "Hello Reloaded")))
+                  :test (cI "Matrix" #_ "Matrix Reloaded")))
 
+(comment "Alpha flutter aproach. Works as expected, both for reload-test,
+          and making a ui-free matrix and stuffing it in via mget.")
 #_
 (defn main-app []
   (m/runApp
@@ -79,54 +78,110 @@
                                   .style (m/TextStyle
                                           .color m.Colors/red
                                           .fontSize 32.0))))))))
+
+(comment "Simplified Alpha flutter aproach. Works as expected.")
+#_ (defn main-app []
+   (m/runApp
+    (f/widget
+     :key "key"
+     (m/MaterialApp
+      .home (m/Scaffold
+             .body (m/Center
+                    .child (m/Text reload-test)))))))
+
+(comment "Pure interop approach. I do not know why this does not work.
+         Maybe the same cause behind f/mx not working?")
+#_ (defn main-app []
+     (m/runApp
+      (m/MaterialApp
+       .key (foundation/UniqueKey)
+       .title "Welcome to Flutter"
+       .theme (m/ThemeData .primarySwatch m.Colors/pink)
+       .home (m/Scaffold
+              .appBar (m/AppBar
+                       .title (m/Text (mget test-matrix :test)))
+              .body (m/Center
+                     .child (m/Text reload-test))))))
+
+(comment "Simplified Alpha nested in f/mx. Works as expected.")
+#_ (defn main-app []
+   (m/runApp
+    (fx/fx-render nil
+                  (material-app
+                   (f/widget
+                    :key "a-key"
+                    (m/Scaffold
+                     .body (m/Center
+                            .child (m/Text reload-test))))))))
+
+(comment "Simplified Alpha nested in f/mx. Does not work with key in f/mx layer! Compare with previous.")
 (defn main-app []
   (m/runApp
    (fx/fx-render nil
                  (material-app
                   {:key (foundation/UniqueKey)}
-                  {:a-value (cI :hello)}
-                  (scaffold
-                   (fx/center
-                    (fx/column
-                     (widget (do "needle" (m/Text reload-test2
-                                                  .style (m/TextStyle
-                                                          .color m.Colors/red
-                                                          .fontSize 32.0))))
-                     (do (fx/in-my-context [me ctx]
-                                           (m/TextStyle
-                                            .color m.Colors/red
-                                            .fontSize 32.0))
-                         (fx/text (do (reset! a-me me)
-                                      reload-test))))))))))
+                  (f/widget
+                   (m/Scaffold
+                    .body (m/Center
+                           .child (m/Text reload-test))))))))
 
-#_ (defn make-app []
-     (fx/fx-render nil
-                   (material-app
-                    {:key (foundation/ValueKey "key2")}
-                    (scaffold
-                     (text (mget test-matrix :test))))))
-#_
-
-(defn main-app []
-  (m/runApp
-   (f/widget
-    :key "key"
-    (make-app))))
+(comment "f/mx nested inside of widget-min nested inside of f/mx. Works, not expected!")
+(comment "TODO -- try with something other than mx/text")
 
 #_ (defn main-app []
      (m/runApp
-      (m/MaterialApp
-       .title "Welcome to Flutter"
-       .key (foundation/ValueKey "key")
-       .theme (m/ThemeData .primarySwatch m.Colors/pink)
-       .home (m/Scaffold
-              .appBar (m/AppBar
-                       .title (m/Text "Welcome to ClojureDart"))
-              .body (m/Center
-                     .child (m/Text reload-test
-                                    .style (m/TextStyle
-                                            .color m.Colors/red
-                                            .fontSize 32.0)))))))
+      (fx/fx-render nil
+                    (material-app
+                     {:key (foundation/UniqueKey)}
+                     (scaffold
+                      (fx/center
+                       (fx/column
+                        (widget-min (fx/fx-render nil (fx/text reload-test))))))))))
+
+(comment "How far can we go with this approach? Not this far.")
+#_ (defn main-app []
+   (m/runApp
+    (fx/fx-render nil
+                  (material-app
+                   {:key (foundation/UniqueKey)}
+                   (scaffold
+                    (fx/fx-render nil
+                                  (fx/center
+                                   (fx/column
+                                    (widget-min (fx/fx-render nil (fx/text reload-test)))
+                                    (fx/text reload-test)))))))))
+
+(comment "How far can we go with this approach? Maybe one parent? Nope.")
+#_ (defn main-app []
+   (m/runApp
+    (fx/fx-render nil
+                  (material-app
+                   {:key (foundation/UniqueKey)}
+                   (scaffold
+                    (fx/center
+                     (fx/fx-render nil (fx/column
+                                        (widget-min (fx/fx-render nil (fx/text reload-test)))
+                                        (fx/text reload-test)))))))))
+
+(comment "Me trying to manually apply setState after reassemble. No bacon. See repl-ish above.")
+#_ (defn main-app []
+     (m/runApp
+      (fx/fx-render nil
+                    (material-app
+                     {:key (foundation/UniqueKey)}
+                     (scaffold
+                      (fx/center
+                       (fx/column
+                        (fx/text (do (reset! a-me me)
+                                     reload-test)))))))))
+
+(comment "Bare-minimum f/mx attempt. No bacon.")
+#_ (defn make-app []
+     (fx/fx-render nil
+                   (fx/material-app
+                    {:key (foundation/UniqueKey)}
+                    (scaffold
+                     (fx/text (fx/mget test-matrix :test))))))
 
 (defn main []
   (main-app))
