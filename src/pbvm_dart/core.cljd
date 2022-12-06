@@ -3,10 +3,13 @@
             [cljd.flutter.alpha2 :as f]
             [tiltontec.cell.core :refer [cF cF+ cF_ cI]]
             [tiltontec.model.core :refer [mget mset! mswap! fm*] :as md]
-            [tiltontec.flutter-mx.core :refer [as-dart-callback] :as fx]
-            ["package:flutter/foundation.dart" :as foundation]))
+            [tiltontec.flutter-mx.core :as fx
+             :refer [scaffold app-bar text center as-dart-callback column hero material-app]]
+            ["package:flutter/foundation.dart" :as foundation]
+            ["package:flutter/painting.dart" :as p]))
 
 (def reload-test "This text is Centered." #_ "This text is Reloaded.")
+(def reload-map-test {:reload-test reload-test})
 
 (defn main-app []
   (m/runApp
@@ -23,6 +26,17 @@
                                   .style (m/TextStyle
                                           .color m.Colors/red
                                           .fontSize 32.0))))))))
+#_
+(defn main-app []
+  (m/runApp
+   (fx/fx-render nil
+                 (material-app
+                  {:key (foundation/ValueKey "key")}
+                  (scaffold
+                   (center
+                    (column
+                     (text reload-test))))))))
+
 #_ (defn main-app []
      (m/runApp
       (m/MaterialApp
