@@ -1,16 +1,69 @@
 (ns pbvm-dart.core
   (:require ["package:flutter/material.dart" :as m]
+            ["package:flutter/widgets.dart" :as w]
+            ["dart:core" :as dc]
             [cljd.flutter.alpha2 :as f]
             [tiltontec.cell.core :refer [cF cF+ cF_ cI]]
             [tiltontec.model.core :refer [mget mset! mswap! fm*] :as md]
             [tiltontec.flutter-mx.core :as fx
              :refer [scaffold app-bar text center as-dart-callback column hero material-app]]
+            [tiltontec.flutter-mx.factory :as fct]
             ["package:flutter/foundation.dart" :as foundation]
             ["package:flutter/painting.dart" :as p]))
 
-(def reload-test "This text is Centered." #_ "This text is Reloaded.")
+#_ (defmacro macro-test [name value]
+     `(def ~name ~value))
+
+#_ (macro-test reload-test "This text is Centered." #_ "This text is Reloaded.")
+
+(defonce a-me (atom nil))
+
+(defn repl-ish []
+  (dc/print :reloading---)
+  (if-let [me @a-me]
+    (do (await (.delayed dc/Future (dc/Duration .milliseconds 2000)))
+        (fct/state-set-all me))
+    (dc/print :not-yet))
+  )
+
+(defmacro widget
+  [& body]
+  (let [flutter-build-ctx (vary-meta `ctx# assoc :tag `w/BuildContext)
+        state-sym `^w/State state#
+        super-sym `super#
+        user-widget
+        `(reify :extends (w/StatefulWidget.)
+           :no-meta true
+           (~'createState [_#]
+            (reify :extends w/State
+              :no-meta true
+              (~'initState [~state-sym]
+               (.initState ~(vary-meta state-sym assoc :tag 'super))
+               nil)
+              (^void ~'reassemble [this#]
+               (.reassemble ^{:tag ~'super} this#)
+               (repl-ish))
+              (~'dispose [~state-sym]
+               (.dispose ~(vary-meta state-sym assoc :tag 'super)))
+              (~'build [~state-sym ~flutter-build-ctx]
+               ~@body))))]
+    user-widget))
+
+(do (def reload-test #_ "This text is Centered." "This text is Reloaded.")
+
+    (def reload-test2 #_ "This text is Centered." "This text is Reloaded."))
+
+(let [rrr reload-test]
+  (dc/print rrr)
+  rrr)
+
 (def reload-map-test {:reload-test reload-test})
 
+
+(def test-matrix (md/make
+                  :test (cI "Hello" #_ "Hello Reloaded")))
+
+#_
 (defn main-app []
   (m/runApp
    (f/widget
@@ -20,22 +73,45 @@
      .theme (m/ThemeData .primarySwatch m.Colors/pink)
      .home (m/Scaffold
             .appBar (m/AppBar
-                     .title (m/Text "Welcome to ClojureDart"))
+                     .title (m/Text (mget test-matrix :test)))
             .body (m/Center
                    .child (m/Text reload-test
                                   .style (m/TextStyle
                                           .color m.Colors/red
                                           .fontSize 32.0))))))))
-#_
 (defn main-app []
   (m/runApp
    (fx/fx-render nil
                  (material-app
-                  {:key (foundation/ValueKey "key")}
+                  {:key (foundation/UniqueKey)}
+                  {:a-value (cI :hello)}
                   (scaffold
-                   (center
-                    (column
-                     (text reload-test))))))))
+                   (fx/center
+                    (fx/column
+                     (widget (do "needle" (m/Text reload-test2
+                                                  .style (m/TextStyle
+                                                          .color m.Colors/red
+                                                          .fontSize 32.0))))
+                     (do (fx/in-my-context [me ctx]
+                                           (m/TextStyle
+                                            .color m.Colors/red
+                                            .fontSize 32.0))
+                         (fx/text (do (reset! a-me me)
+                                      reload-test))))))))))
+
+#_ (defn make-app []
+     (fx/fx-render nil
+                   (material-app
+                    {:key (foundation/ValueKey "key2")}
+                    (scaffold
+                     (text (mget test-matrix :test))))))
+#_
+
+(defn main-app []
+  (m/runApp
+   (f/widget
+    :key "key"
+    (make-app))))
 
 #_ (defn main-app []
      (m/runApp
