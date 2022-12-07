@@ -27,35 +27,67 @@
   )
 
 (comment "alpha's widget macro paired down to the bare-minimum (I think).")
+#_ (defmacro widget-min
+   [& body]
+   (let [flutter-build-ctx (vary-meta `ctx# assoc :tag `w/BuildContext)
+         state-sym `^w/State state#
+         super-sym `super#
+         user-widget
+         `(reify :extends (w/StatefulWidget.)
+            :no-meta true
+            (~'createState [_#]
+             (reify :extends w/State
+               :no-meta true
+               (~'initState [~state-sym]
+                (.initState ~(vary-meta state-sym assoc :tag 'super))
+                nil)
+               (^void ~'reassemble [this#]
+                (.reassemble ^{:tag ~'super} this#)
+                (repl-ish))
+               (~'dispose [~state-sym]
+                (.dispose ~(vary-meta state-sym assoc :tag 'super)))
+               (~'build [~state-sym ~flutter-build-ctx]
+                ~@body))))]
+     user-widget))
+
+#_ (reify :extends (w/StatefulWidget.)
+     :no-meta true
+     (~'createState [_#]
+      (reify :extends w/State
+        :no-meta true
+        (~'initState [~state-sym]
+         (.initState ~(vary-meta state-sym assoc :tag 'super))
+         nil)
+        (^void ~'reassemble [this#]
+         (.reassemble ^{:tag ~'super} this#)
+         (repl-ish))
+        (~'dispose [~state-sym]
+         (.dispose ~(vary-meta state-sym assoc :tag 'super)))
+        (~'build [~state-sym ~flutter-build-ctx]
+         ~@body))))
+
 (defmacro widget-min
   [& body]
   (let [flutter-build-ctx (vary-meta `ctx# assoc :tag `w/BuildContext)
         state-sym `^w/State state#
         super-sym `super#
         user-widget
-        `(reify :extends (w/StatefulWidget.)
-           :no-meta true
+        `(reify :extends (m/StatefulWidget
+                             .key (foundation/UniqueKey))
            (~'createState [_#]
             (reify :extends w/State
-              :no-meta true
-              (~'initState [~state-sym]
-               (.initState ~(vary-meta state-sym assoc :tag 'super))
-               nil)
-              (^void ~'reassemble [this#]
-               (.reassemble ^{:tag ~'super} this#)
-               (repl-ish))
-              (~'dispose [~state-sym]
-               (.dispose ~(vary-meta state-sym assoc :tag 'super)))
-              (~'build [~state-sym ~flutter-build-ctx]
+              ^:mixin m/SingleTickerProviderStateMixin ;; todo make optional
+              (^void ~'initState [this]
+                                        ;(.initState ~'^super this)
+               )
+              (~'build [_# ctx]
                ~@body))))]
     user-widget))
 
 
 
 
-
-
-(def reload-test "This text is Centered." #_ "This text is Reloaded.")
+(def reload-test #_ "This text is Centered." "This text is Reloaded.")
 
 (def test-matrix (md/make
                   :test (cI "Matrix" #_ "Matrix Reloaded")))
@@ -114,16 +146,21 @@
                      .body (m/Center
                             .child (m/Text reload-test))))))))
 
-(comment "Simplified Alpha nested in f/mx. Does not work with key in f/mx layer! Compare with previous.")
+(comment "")
+
+(def abstracted (m/Text reload-test))
+
+(defn abstract [] (do (m/Text reload-test)))
+
 (defn main-app []
   (m/runApp
    (fx/fx-render nil
-                 (material-app
+                 (fx/material-app
                   {:key (foundation/UniqueKey)}
-                  (f/widget
-                   (m/Scaffold
-                    .body (m/Center
-                           .child (m/Text reload-test))))))))
+                  (fx/scaffold
+                   (fx/center
+                    (fx/column abstracted
+                               (abstract))))))))
 
 (comment "f/mx nested inside of widget-min nested inside of f/mx. Works, not expected!")
 (comment "TODO -- try with something other than mx/text")
