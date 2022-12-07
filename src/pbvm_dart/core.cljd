@@ -2,6 +2,7 @@
   (:require ["package:flutter/material.dart" :as m]
             ["package:flutter/widgets.dart" :as w]
             ["dart:core" :as dc]
+            ["reload.dart" :refer [rebuildAllChildren]]
             [cljd.flutter.alpha2 :as f]
             [tiltontec.cell.core :refer [cF cF+ cF_ cI]]
             [tiltontec.model.core :refer [mget mset! mswap! fm*] :as md]
@@ -66,28 +67,39 @@
         (~'build [~state-sym ~flutter-build-ctx]
          ~@body))))
 
+(comment "paired down k1-child-stateful -- reload work?  Yep.")
 (defmacro widget-min
   [& body]
-  (let [flutter-build-ctx (vary-meta `ctx# assoc :tag `w/BuildContext)
-        state-sym `^w/State state#
-        super-sym `super#
-        user-widget
-        `(reify :extends (m/StatefulWidget
-                             .key (foundation/UniqueKey))
-           (~'createState [_#]
-            (reify :extends w/State
-              ^:mixin m/SingleTickerProviderStateMixin ;; todo make optional
-              (^void ~'initState [this]
+  `(reify :extends (m/StatefulWidget
+                       .key (foundation/UniqueKey))
+     (~'createState [_#]
+      (reify :extends w/State
+        ^:mixin m/SingleTickerProviderStateMixin ;; todo make optional
+        (^void ~'initState [this]
                                         ;(.initState ~'^super this)
-               )
-              (~'build [_# ctx]
-               ~@body))))]
-    user-widget))
+         )
+        (~'build [_# ctx]
+         ~@body)))))
+
+(comment "If what it needs is a repaint, this should do it.")
+(defmacro force-render
+  [& body]
+  `(reify :extends (m/StatefulWidget
+                       .key (foundation/UniqueKey))
+     (~'createState [_#]
+      (reify :extends w/State
+        ^:mixin m/SingleTickerProviderStateMixin ;; todo make optional
+        (^void ~'initState [this]
+                                        ;(.initState ~'^super this)
+         )
+        (~'build [_# ctx]
+         (rebuildAllChildren ctx)
+         ~@body)))))
 
 
 
 
-(def reload-test #_ "This text is Centered." "This text is Reloaded.")
+(def reload-test "This text is Centered." #_ "This text is Reloaded.")
 
 (def test-matrix (md/make
                   :test (cI "Matrix" #_ "Matrix Reloaded")))
@@ -137,20 +149,25 @@
 
 (comment "Simplified Alpha nested in f/mx. Works as expected.")
 #_ (defn main-app []
-   (m/runApp
-    (fx/fx-render nil
-                  (material-app
-                   (f/widget
-                    :key "a-key"
-                    (m/Scaffold
-                     .body (m/Center
-                            .child (m/Text reload-test))))))))
+     (m/runApp
+      (fx/fx-render nil
+                    (material-app
+                     (f/widget
+                      :key "a-key"
+                      (m/Scaffold
+                       .body (m/Center
+                              .child (m/Text reload-test))))))))
 
-(comment "")
+;; ----------------------------------------------------------------------------
+
+(comment "Trying to pretend to be f/mx and break things")
 
 (def abstracted (m/Text reload-test))
 
-(defn abstract [] (do (m/Text reload-test)))
+(defn abstract [] (m/Text reload-test))
+
+(def flutter-cell (md/make
+                   :test (m/Text reload-test)))
 
 (defn main-app []
   (m/runApp
@@ -159,9 +176,32 @@
                   {:key (foundation/UniqueKey)}
                   (fx/scaffold
                    (fx/center
-                    (fx/column abstracted
-                               (abstract))))))))
+                    (fx/column (widget-min abstracted)
+                               (widget-min (abstract))
+                               (widget-min (mget flutter-cell :test))
+                               abstracted
+                               (abstract)
+                               (mget flutter-cell :test))))))))
 
+
+(comment "!!! This works !!!  --- Means the problem lies in needing to mark for repaint.")
+#_ (defn main-app []
+     (m/runApp
+      (force-render (fx/fx-render nil
+                                  (fx/material-app
+                                   {:key (foundation/UniqueKey)}
+                                   (fx/scaffold
+                                    (fx/center
+                                     (fx/column (widget-min abstracted)
+                                                (widget-min (abstract))
+                                                (widget-min (mget flutter-cell :test))
+                                                abstracted
+                                                (abstract)
+                                                (mget flutter-cell :test)))))))))
+
+
+
+;; ----------------------------------------------------------------------------
 (comment "f/mx nested inside of widget-min nested inside of f/mx. Works, not expected!")
 (comment "TODO -- try with something other than mx/text")
 
